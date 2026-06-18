@@ -131,6 +131,97 @@ def calcular_integracion(metodo, str_funcion, a, b, parametro):
 
         aprox = adaptativa_recursiva(a, b, tol, 1)
         formula_usada = f"Adaptativa (Tolerancia: {tol})"
+    elif "Gaussiana" in metodo:
+        puntos = int(parametro)
+        if puntos not in [2, 3]:
+            raise ValueError("Por ahora solo se soporta Cuadratura Gaussiana de 2 o 3 puntos.")
 
+        # Valores de raíces (t) y pesos (c) tabulados para Legendre
+        if puntos == 2:
+            t_vals = [-1/np.sqrt(3), 1/np.sqrt(3)]
+            c_vals = [1.0, 1.0]
+            formula_usada = "Cuadratura Gaussiana (2 puntos)"
+        elif puntos == 3:
+            t_vals = [-np.sqrt(3/5), 0.0, np.sqrt(3/5)]
+            c_vals = [5/9, 8/9, 5/9]
+            formula_usada = "Cuadratura Gaussiana (3 puntos)"
+
+        suma = 0
+        # Transformación de límites [a, b] al intervalo [-1, 1]
+        factor_dx = (b - a) / 2
+        termino_indep = (b + a) / 2
+
+        for i in range(puntos):
+            t_i = t_vals[i]
+            c_i = c_vals[i]
+            
+            # Mapeo de t a x
+            x_i = factor_dx * t_i + termino_indep
+            fx_i = f(x_i)
+            
+            termino = c_i * fx_i
+            suma += termino
+            
+            # Guardamos para la tabla: ["i", "t_i (Raíz)", "c_i (Peso)", "f(x(t_i))", "Término Evaluado"]
+            filas_tabla.append([i+1, round(t_i, 6), round(c_i, 6), round(fx_i, 6), round(termino, 6)])
+
+        aprox = factor_dx * suma
+        
     error_verdadero = abs(exacta - aprox) if exacta is not None else "N/A"
     return aprox, error_verdadero, filas_tabla, formula_usada, exacta
+
+def calcular_integracion_discreta(metodo, x_datos, y_datos):
+    """
+    Calcula la integral numérica utilizando una serie de puntos discretos (vectores X e Y).
+    """
+    n = len(x_datos) - 1
+    if n < 1: 
+        raise ValueError("Se necesitan al menos 2 puntos para integrar.")
+    if len(x_datos) != len(y_datos): 
+        raise ValueError("Los vectores X e Y deben tener la misma cantidad de elementos.")
+
+    filas_tabla = []
+    suma = 0
+
+    if "Trapecio" in metodo:
+        # El método del trapecio soporta espacios (h) variables entre puntos
+        for i in range(n):
+            h_i = x_datos[i+1] - x_datos[i]
+            area_i = (h_i / 2) * (y_datos[i] + y_datos[i+1])
+            suma += area_i
+            filas_tabla.append([i, round(x_datos[i], 6), round(x_datos[i+1], 6), round(y_datos[i], 6), round(y_datos[i+1], 6), round(h_i, 6), round(area_i, 6)])
+        formula = "Trapecio Discreto (áreas por subtramo)"
+        return suma, "N/A", filas_tabla, formula, None
+
+    elif "Simpson 1/3" in metodo:
+        if n % 2 != 0: 
+            raise ValueError("Simpson 1/3 requiere un número par de intervalos (impar de puntos).")
+        h = x_datos[1] - x_datos[0] # Asume h constante
+        suma = y_datos[0] + y_datos[-1]
+        
+        for i in range(1, n):
+            coef = 4 if i % 2 != 0 else 2
+            termino = coef * y_datos[i]
+            suma += termino
+            filas_tabla.append([i, round(x_datos[i], 6), round(y_datos[i], 6), coef, round(termino, 6)])
+            
+        aprox = (h / 3) * suma
+        return aprox, "N/A", filas_tabla, f"Simpson 1/3 Discreto (h={round(h, 4)})", None
+
+    elif "Simpson 3/8" in metodo:
+        if n % 3 != 0: 
+            raise ValueError("Simpson 3/8 requiere un número de intervalos múltiplo de 3.")
+        h = x_datos[1] - x_datos[0]
+        suma = y_datos[0] + y_datos[-1]
+        
+        for i in range(1, n):
+            coef = 2 if i % 3 == 0 else 3
+            termino = coef * y_datos[i]
+            suma += termino
+            filas_tabla.append([i, round(x_datos[i], 6), round(y_datos[i], 6), coef, round(termino, 6)])
+            
+        aprox = (3 * h / 8) * suma
+        return aprox, "N/A", filas_tabla, f"Simpson 3/8 Discreto (h={round(h, 4)})", None
+
+    else:
+        raise ValueError(f"El método '{metodo}' requiere una función f(x), no puntos discretos.")
