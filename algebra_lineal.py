@@ -63,3 +63,64 @@ def eliminacion_gaussiana(matriz_A, vector_b, tipo_pivoteo="Parcial de Columna")
 
     except Exception as e:
         raise ValueError(str(e))
+
+def factorizacion_lu(matriz_A, vector_b):
+    """
+    Resuelve el sistema Ax = b utilizando Factorización LU (Método de Doolittle).
+    Devuelve las raíces, los pasos documentados, y las matrices L y U.
+    """
+    try:
+        A = np.array(matriz_A, dtype=float)
+        b = np.array(vector_b, dtype=float).flatten()
+        n = len(b)
+
+        if A.shape[0] != n or A.shape[1] != n:
+            raise ValueError("La matriz A debe ser cuadrada (n x n) y coincidir con b.")
+
+        L = np.zeros((n, n))
+        U = np.zeros((n, n))
+        filas_tabla = []
+
+        # --- FASE 1: DESCOMPOSICIÓN L y U ---
+        for i in range(n):
+            # La diagonal principal de L es 1 (Método Doolittle)
+            L[i][i] = 1.0
+
+            # Calcular la fila 'i' de U
+            for j in range(i, n):
+                suma = sum(L[i][k] * U[k][j] for k in range(i))
+                U[i][j] = A[i][j] - suma
+
+            # Calcular la columna 'i' de L
+            for j in range(i + 1, n):
+                if abs(U[i][i]) < 1e-12:
+                    raise ValueError("Se detectó un 0 en la diagonal de U. Este sistema requiere pivoteo, el cual no está soportado en LU simple.")
+                suma = sum(L[j][k] * U[k][i] for k in range(i))
+                L[j][i] = (A[j][i] - suma) / U[i][i]
+
+        filas_tabla.append(["Fase 1", "Descomposición", "Matrices L y U calculadas"])
+
+        # --- FASE 2: RESOLVER Ly = b (Sustitución hacia adelante) ---
+        y = np.zeros(n)
+        for i in range(n):
+            suma = np.dot(L[i, :i], y[:i])
+            y[i] = b[i] - suma
+        
+        y_redondeado = [round(val, 4) for val in y]
+        filas_tabla.append(["Fase 2", "Sustitución Hacia Adelante (Ly = b)", f"Vector y: {y_redondeado}"])
+
+        # --- FASE 3: RESOLVER Ux = y (Sustitución hacia atrás) ---
+        x = np.zeros(n)
+        for i in range(n - 1, -1, -1):
+            if abs(U[i][i]) < 1e-12:
+                raise ValueError("Sistema singular detectado en la sustitución hacia atrás.")
+            suma = np.dot(U[i, i+1:], x[i+1:])
+            x[i] = (y[i] - suma) / U[i][i]
+
+        x_redondeado = [round(val, 4) for val in x]
+        filas_tabla.append(["Fase 3", "Sustitución Hacia Atrás (Ux = y)", f"Vector x: {x_redondeado}"])
+
+        return x, filas_tabla, L, U
+
+    except Exception as e:
+        raise ValueError(str(e))

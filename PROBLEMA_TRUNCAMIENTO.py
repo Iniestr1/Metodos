@@ -40,7 +40,7 @@ def calcular_ieee754(numero, bits=32):
             "exponente_real": exponente_real,
             "mantisa": mantisa,
             "binario_completo": binario,
-            "hexadecimal": hex(int(binario, 2)).upper().replace("0X", "0x")
+            #"hexadecimal": hex(int(binario, 2)).upper().replace("0X", "0x")
         }
         return datos, "Cálculo exitoso"
         

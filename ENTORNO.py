@@ -202,8 +202,8 @@ class FrameTruncamiento(ctk.CTkFrame):
         self.btn_calc = ctk.CTkButton(self, text="Calcular IEEE 754", command=self.calcular)
         self.btn_calc.pack(pady=15)
 
-        self.lbl_hex = ctk.CTkLabel(self, text="Hexadecimal: ---", font=("Arial", 16, "bold"), text_color="#f39c12")
-        self.lbl_hex.pack(pady=2)
+        #self.lbl_hex = ctk.CTkLabel(self, text="Hexadecimal: ---", font=("Arial", 16, "bold"), text_color="#f39c12")
+        #self.lbl_hex.pack(pady=2)
         self.lbl_bin = ctk.CTkLabel(self, text="Binario: ---", font=("Consolas", 14), text_color="gray")
         self.lbl_bin.pack(pady=(2, 10))
         
@@ -228,7 +228,7 @@ class FrameTruncamiento(ctk.CTkFrame):
             ]
             
             self.tabla.actualizar_datos(cols, filas, f"Conversión IEEE 754 a {bits} bits calculada.")
-            self.lbl_hex.configure(text=f"Hexadecimal: {datos['hexadecimal']}")
+            #self.lbl_hex.configure(text=f"Hexadecimal: {datos['hexadecimal']}")
             bin_legible = f"{datos['signo']} - {datos['caracteristica']} - {datos['mantisa']}"
             self.lbl_bin.configure(text=f"Binario: {bin_legible}")
 
@@ -1220,7 +1220,11 @@ class FrameAlgebraLineal(ctk.CTkFrame):
         self.lbl_titulo = ctk.CTkLabel(self, text="Sistemas de Ecuaciones Lineales", font=ctk.CTkFont(size=20, weight="bold"))
         self.lbl_titulo.pack(pady=(15, 5))
 
-        self.menu_metodo = ctk.CTkOptionMenu(self, values=["Parcial de Columna", "Parcial Escalado"], width=250)
+        self.menu_metodo = ctk.CTkOptionMenu(
+            self, 
+            values=["Parcial de Columna", "Parcial Escalado", "Factorización LU"], 
+            width=250
+        )
         self.menu_metodo.pack(pady=5)
 
         # --- CONTROLES PARA GENERAR LA CUADRÍCULA ---
@@ -1315,11 +1319,16 @@ class FrameAlgebraLineal(ctk.CTkFrame):
                 b.append(float(val))
 
             # --- ENVIAR AL BACKEND MATEMÁTICO ---
-            x_res, pasos, Ab_final = algebra_lineal.eliminacion_gaussiana(A, b, metodo)
+            if metodo == "Factorización LU":
+                x_res, pasos, matriz_L, matriz_U = algebra_lineal.factorizacion_lu(A, b)
+                msj_exito = "Factorización LU finalizada con éxito."
+            else:
+                x_res, pasos, Ab_final = algebra_lineal.eliminacion_gaussiana(A, b, metodo)
+                msj_exito = f"Eliminación Gaussiana ({metodo}) finalizada."
 
             # --- MOSTRAR RESULTADOS ---
-            cols = ["Paso / Fase", "Operación Realizada", "Detalle / Pivote"]
-            self.tabla.actualizar_datos(cols, pasos, "Eliminación Gaussiana finalizada.")
+            cols = ["Paso / Fase", "Operación Realizada", "Detalle / Resultado"]
+            self.tabla.actualizar_datos(cols, pasos, msj_exito)
 
             msj_resultados = "Raíces encontradas:\n"
             for i, raiz in enumerate(x_res):
